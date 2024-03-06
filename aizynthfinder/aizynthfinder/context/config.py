@@ -45,7 +45,7 @@ class Configuration:  # pylint: disable=R0902
     C: float = 2.0  # pylint: disable=invalid-name
     current_iteration: int = 0
     cutoff_cumulative: float = 0.995
-    cutoff_number: int = 50
+    cutoff_number: int = 20
     additive_expansion: bool = False
     use_rdchiral: bool = True
     max_transforms: int = 10

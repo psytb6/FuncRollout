@@ -193,6 +193,9 @@ class MctsNode:
         """
         return self.path_to()[0]
 
+    def backpropagate_new(self, leaf, value_estimate):
+        return None
+
     def backpropagate(self, child: "MctsNode", value_estimate: float) -> None:
         """
         Update the number of visitations of a particular child and its value.
@@ -200,6 +203,7 @@ class MctsNode:
         :param child: the child node
         :param value_estimate: the value to add to the child value
         """
+
         idx = self._children.index(child)
         self._children_visitations[idx] += 1
         self._children_values[idx] += value_estimate
@@ -433,7 +437,7 @@ class MctsNode:
 
 
 
-            scores = self._children_q() + self._children_u()
+            scores = self._children_q() + self._children_eU()
             for score in scores:
                 uct_scores.append(score)
             # with open('score_values.csv', 'a') as f:

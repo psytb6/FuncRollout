@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING
 import csv
+import copy
 import networkx as nx
 import matplotlib.pyplot as plt
 import random
@@ -121,49 +122,60 @@ class MctsSearchTree:
         """
         self.profiling["iterations"] += 1
         print(self.profiling['iterations'])
+
+        # iteratively select until a leaf node is reached
         leaf = self.select_leaf()
+        # expand the leaf node returning ONE child
         leaf.expand()
-        for i in leaf.state.mols:
-            print(i.smiles)
-        print(leaf.parent)
-        print(leaf.children)
+        # extract smiles from current leaf for rollout
         smiles = leaf.state.extract_smiles_from_str_representation()
+        # find terminal requirements
         current_depth = leaf.state.max_transforms
+        # create empty list of solved molecules to add too during rollout
         solved_mols = []
-
-        counter = 0
-        while (not leaf.is_sim_terminal(smiles, self.config.max_transforms, current_depth, self.config)
+        # create deep copy of leaf, so we can backpropogate to original leaf later
+        leafsub = copy.copy(leaf)
+        #perform the rollout. Stop conditions:
+        #   max transforms reached
+        #   smiles are all in stock
+        #   no more smiles to rollout
+        while (not leafsub.is_sim_terminal(smiles, self.config.max_transforms, current_depth, self.config)
                and len(smiles) > 0):
-            actions, used_mol = leaf.find_actions(smiles, self.config.expansion_policy)
+            # find the template actions for the node. Store the used mol to remove from list of mols for rollout
+            actions, used_mol = leafsub.find_actions(smiles, self.config.expansion_policy)
             reactants = None
-            print('initial', smiles)
-            while actions:
-                action = random.choice(actions)
-                reactants = leaf.perform_action(action)
-                if not reactants:
-                    counter +=1
+            # remove the actions which do not yield a result
+            for action in actions:
+                result = leafsub.perform_action(action)
+                if not result:
                     actions.remove(action)
-            print(actions)
-
+            # choose a random action (which should already produce a guaranteed result)
+            if actions:
+                action = random.choice(actions)
+            else:
+                continue
+            # perform the action and store the resultant molecules
+            reactants = leaf.perform_action(action)
+            # remove the used molecule from the list of smile strings
             if used_mol in smiles:
                 smiles.remove(used_mol)
-
+            # add the new reactants to the list of smile strings
             for tree_mol in reactants:
                 smiles.append(tree_mol.smiles)
-
-
+            # separate the in_stock molecules and append them to the solved smile list
             smiles, solved = leaf.separate_solved_mols(smiles, self.config)
             solved_mols.append(solved)
             current_depth += 1
 
+        # calculate score of rollout from the number of solved molecules/ the total number of molecules
+        # should probably write function which does this
         if len(smiles) > 0 and len(solved_mols) > 0:
-            score = len(solved_mols)/len(smiles)
+            score = (1/(len(solved_mols)+len(smiles)))*len(solved_mols)
         if len(solved_mols) == 0:
             score = 0
         if len(smiles) == 0:
             score = 1
-        print(leaf.parent.children)
-        leaf.backpropagate(leaf, score)
+        self.backpropagate(leaf, score)
         return leaf.state.is_solved
 
     def select_leaf(self) -> MctsNode:

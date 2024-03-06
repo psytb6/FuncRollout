@@ -210,7 +210,7 @@ class AiZynthFinder:
             self.search_stats["iterations"] += 1
 
             try:
-                is_solved = self.tree.one_iteration_od()
+                is_solved = self.tree.one_iteration()
                 self.config.current_iteration = self.search_stats["iterations"]
                 # print(self.config.current_iteration)
             except StopIteration:

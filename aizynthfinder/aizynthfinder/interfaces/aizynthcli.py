@@ -251,9 +251,11 @@ def _process_multi_smiles(
         stats = finder.extract_statistics()
 
 
-        # with open('policy_testing.csv', 'a') as f:
-        #     w = csv.writer(f, lineterminator='\n')
-        #     w.writerow(stats.values())
+
+        with open('eUCT_5000.csv', 'a') as f:
+            w = csv.writer(f, lineterminator='\n')
+            # w.writerow(stats.keys())
+            w.writerow(stats.values())
 
 
         solved_str = "is solved" if stats["is_solved"] else "is not solved"
